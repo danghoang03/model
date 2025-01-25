@@ -1,0 +1,6 @@
+{
+    "course_name": "DSA",
+    "post_id": 1,
+    "title": "Test Cases for Stack Operations",
+    "content": "This post provides detailed test cases for stack operations to ensure correctness and efficiency. The test cases cover basic operations (Push, Pop, Top): Verify functionality for both empty and non-empty stacks, and edge cases like stack overflow"
+}
