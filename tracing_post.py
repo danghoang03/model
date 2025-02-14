@@ -1,31 +1,51 @@
-import json
 import os
+import psycopg2
 from gensim.models import LdaModel
 from gensim.corpora.dictionary import Dictionary
 from gensim.parsing.preprocessing import preprocess_string
-from scipy.spatial.distance import cosine, euclidean
+from scipy.spatial.distance import cosine
 from pickle import load, dump
 import numpy as np
 from numpy import ravel
 
 MODELS_DIR = "models"
 DATA_DIR = "data"
+DB_CONFIG = {
+    "dbname": "tc-sharing",
+    "user": "postgres",
+    "password": "123456",
+    "host": "localhost",
+    "port": "5432"
+}
 
-def process_post(json_file):
-    with open(json_file, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+def get_post_from_db(post_id):
+    conn = psycopg2.connect(**DB_CONFIG)
+    cursor = conn.cursor()
+    query = """
+        SELECT subject, title, description FROM posts WHERE id = %s;
+    """
+    cursor.execute(query, (post_id,))
+    result = cursor.fetchone()
+    conn.close()
+    if result:
+        return result[0], {post_id: preprocess_string(result[1]) + preprocess_string(result[2])}
+    return None, {}
+
+# def process_post(json_file):
+#     with open(json_file, 'r', encoding='utf-8') as f:
+#         data = json.load(f)
     
-    preprocessed_post = {}
-    course_name = data['course_name']
-    post_id = data['post_id']
-    title = data['title']
-    content = data['content']
+#     preprocessed_post = {}
+#     course_name = data['course_name']
+#     post_id = data['post_id']
+#     title = data['title']
+#     content = data['content']
     
-    cleaned_title = preprocess_string(title)
-    cleaned_content = preprocess_string(content)
-    preprocessed_post[post_id] = cleaned_title + cleaned_content
+#     cleaned_title = preprocess_string(title)
+#     cleaned_content = preprocess_string(content)
+#     preprocessed_post[post_id] = cleaned_title + cleaned_content
     
-    return course_name, preprocessed_post
+#     return course_name, preprocessed_post
 
 def eval_post(post, course_dictionary, lda_model):
     post_result = {}
@@ -122,37 +142,47 @@ def print_LDA_suggest(post_topic_mapping, course_results):
         similarity = info["similarity"]
         if hierarchy:
             course, chapter, section = hierarchy
+            trace = f"{course or 'Unknown Course'} > {chapter or 'Unknown Chapter'} > {section or 'Unknown Section'}"
+            conn = psycopg2.connect(**DB_CONFIG)
+            cursor = conn.cursor()
+            query = """
+                UPDATE posts SET trace = %s WHERE ID = %s;
+            """
+            cursor.execute(query, (trace, post_id))
+            conn.commit()
+            cursor.close()
+            conn.close()
             print(
-                f"LDA suggested: {course or 'Unknown Course'} > "
+                f"{course or 'Unknown Course'} > "
                 f"{chapter or 'Unknown Chapter'} > "
                 f"{section or 'Unknown Section'} (Similarity: {similarity:.4f})"
             )
         else:
             print(f"LDA suggested: Unknown mapping for post_id {post_id} (Cosine Distance: {similarity:.4f})") 
 
-post_id = "1" #Thay thế bằng post_id tương ứng
-post_json_path = f"post_{post_id}.json"
+for i in range(1, 24):
+    post_id = i
+    course_name, preprocessed_post = get_post_from_db(post_id)
 
-course_name, preprocessed_post = process_post(post_json_path)
-# print(course_name)
-# print(preprocessed_post)
+    # print(course_name)
+    # print(preprocessed_post)
 
-lda_model_path = os.path.join(MODELS_DIR, f"{course_name}_lda.model")
-dictionary_path = os.path.join(MODELS_DIR, f"{course_name}_dictionary.dict")    
-lda_model = LdaModel.load(lda_model_path)
-dictionary = Dictionary.load(dictionary_path)
+    lda_model_path = os.path.join(MODELS_DIR, f"{course_name}_lda.model")
+    dictionary_path = os.path.join(MODELS_DIR, f"{course_name}_dictionary.dict")    
+    lda_model = LdaModel.load(lda_model_path)
+    dictionary = Dictionary.load(dictionary_path)
 
-material_file_path = os.path.join(DATA_DIR, f"eval_{course_name}.pkl")
-with open(material_file_path, 'rb') as f:
-    course_results = load(f)
+    material_file_path = os.path.join(DATA_DIR, f"eval_{course_name}.pkl")
+    with open(material_file_path, 'rb') as f:
+        course_results = load(f)
     
-post_result = eval_post(preprocessed_post, dictionary, lda_model)
-# print(post_result)
+    post_result = eval_post(preprocessed_post, dictionary, lda_model)
+    # print(post_result)
 
-output_eval_file = os.path.join(DATA_DIR, f"eval_post_{post_id}.pkl")
-with open(output_eval_file, 'wb') as f:
-    dump(post_result, f)
+    output_eval_file = os.path.join(DATA_DIR, f"eval_post_{post_id}.pkl")
+    with open(output_eval_file, 'wb') as f:
+        dump(post_result, f)
     
-post_topic_mapping = tracing_post(post_result, course_results)
-# print(post_topic_mapping)
-print_LDA_suggest(post_topic_mapping, course_results)
+    post_topic_mapping = tracing_post(post_result, course_results)
+    # print(post_topic_mapping)
+    print_LDA_suggest(post_topic_mapping, course_results)

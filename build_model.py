@@ -36,7 +36,7 @@ def build_lda_models(course_corpus, course_dictionary, mapping, course_texts):
     # ==== Train Unsupervised LDA ====
     lda_model = LdaModel(
         corpus=course_corpus,
-        num_topics= 30,
+        num_topics= 50,
         id2word=course_dictionary
     )
     return lda_model
