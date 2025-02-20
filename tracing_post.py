@@ -159,6 +159,17 @@ def print_LDA_suggest(post_topic_mapping, course_results):
             )
         else:
             print(f"LDA suggested: Unknown mapping for post_id {post_id} (Cosine Distance: {similarity:.4f})") 
+            
+def update_trace(post_id, trace_str):
+    conn = psycopg2.connect(**DB_CONFIG)
+    cursor = conn.cursor()
+    query = """
+        UPDATE posts SET trace = %s WHERE ID = %s;
+    """
+    cursor.execute(query, (trace, post_id))
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 # for i in range(1, 24):
 #     post_id = i
