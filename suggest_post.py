@@ -189,42 +189,42 @@ def eval_best_suggest(candidate_posts, base_distribution, n):
     return best_suggest
 
 
-def main():
-    student_email = "son.nguyenthai@hcmut.edu.vn"
-    recent_posts = get_student_recent_running_posts(student_email, N)
-    if not recent_posts:
-        print("No recent student run testcases found.")
-        return
-    print(f"Recent student run posts: {recent_posts}")
+# def main():
+#     student_email = "son.nguyenthai@hcmut.edu.vn"
+#     recent_posts = get_student_recent_running_posts(student_email, N)
+#     if not recent_posts:
+#         print("No recent student run testcases found.")
+#         return
+#     print(f"Recent student run posts: {recent_posts}")
     
-    # Tính phân phối chủ đề gốc của sinh viên
-    base_distribution = compute_average_distribution(recent_posts)
-    if base_distribution is None:
-        print("Error computing base distribution.")
-        return
-    print(f"Student base topic distribution: {base_distribution}")
+#     # Tính phân phối chủ đề gốc của sinh viên
+#     base_distribution = compute_average_distribution(recent_posts)
+#     if base_distribution is None:
+#         print("Error computing base distribution.")
+#         return
+#     print(f"Student base topic distribution: {base_distribution}")
     
-    subject = "DSA"
-    subject_materials = load_subject_materials(subject)
+#     subject = "DSA"
+#     subject_materials = load_subject_materials(subject)
     
-    interest_label = determine_student_interest(base_distribution, subject_materials)
-    if interest_label is None:
-        print("Could not determine student interest from subject materials.")
-        return
-    print(f"Student appears to be interested in material: {interest_label}")
+#     interest_label = determine_student_interest(base_distribution, subject_materials)
+#     if interest_label is None:
+#         print("Could not determine student interest from subject materials.")
+#         return
+#     print(f"Student appears to be interested in material: {interest_label}")
     
-    candidate_posts = get_candidate_posts(subject, interest_label, 3, 3)
-    if not candidate_posts:
-        print("No candidate posts found matching the interest label.")
-        return
-    print(f"Candidate posts: {candidate_posts}")
+#     candidate_posts = get_candidate_posts(subject, interest_label, 3, 3)
+#     if not candidate_posts:
+#         print("No candidate posts found matching the interest label.")
+#         return
+#     print(f"Candidate posts: {candidate_posts}")
     
-    best_suggest = eval_best_suggest(candidate_posts, base_distribution, N)
-    if best_suggest is None:
-        print("No valid combination found.")
-        return
+#     best_suggest = eval_best_suggest(candidate_posts, base_distribution, N)
+#     if best_suggest is None:
+#         print("No valid combination found.")
+#         return
 
-    print(f"Suggest {N} posts: {best_suggest}")
+#     print(f"Suggest {N} posts: {best_suggest}")
     
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

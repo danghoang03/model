@@ -160,29 +160,29 @@ def print_LDA_suggest(post_topic_mapping, course_results):
         else:
             print(f"LDA suggested: Unknown mapping for post_id {post_id} (Cosine Distance: {similarity:.4f})") 
 
-for i in range(1, 24):
-    post_id = i
-    course_name, preprocessed_post = get_post_from_db(post_id)
+# for i in range(1, 24):
+#     post_id = i
+#     course_name, preprocessed_post = get_post_from_db(post_id)
 
-    # print(course_name)
-    # print(preprocessed_post)
+#     # print(course_name)
+#     # print(preprocessed_post)
 
-    lda_model_path = os.path.join(MODELS_DIR, f"{course_name}_lda.model")
-    dictionary_path = os.path.join(MODELS_DIR, f"{course_name}_dictionary.dict")    
-    lda_model = LdaModel.load(lda_model_path)
-    dictionary = Dictionary.load(dictionary_path)
+#     lda_model_path = os.path.join(MODELS_DIR, f"{course_name}_lda.model")
+#     dictionary_path = os.path.join(MODELS_DIR, f"{course_name}_dictionary.dict")    
+#     lda_model = LdaModel.load(lda_model_path)
+#     dictionary = Dictionary.load(dictionary_path)
 
-    material_file_path = os.path.join(DATA_DIR, f"eval_{course_name}.pkl")
-    with open(material_file_path, 'rb') as f:
-        course_results = load(f)
+#     material_file_path = os.path.join(DATA_DIR, f"eval_{course_name}.pkl")
+#     with open(material_file_path, 'rb') as f:
+#         course_results = load(f)
     
-    post_result = eval_post(preprocessed_post, dictionary, lda_model)
-    # print(post_result)
+#     post_result = eval_post(preprocessed_post, dictionary, lda_model)
+#     # print(post_result)
 
-    output_eval_file = os.path.join(DATA_DIR, f"eval_post_{post_id}.pkl")
-    with open(output_eval_file, 'wb') as f:
-        dump(post_result, f)
+#     output_eval_file = os.path.join(DATA_DIR, f"eval_post_{post_id}.pkl")
+#     with open(output_eval_file, 'wb') as f:
+#         dump(post_result, f)
     
-    post_topic_mapping = tracing_post(post_result, course_results)
-    # print(post_topic_mapping)
-    print_LDA_suggest(post_topic_mapping, course_results)
+#     post_topic_mapping = tracing_post(post_result, course_results)
+#     # print(post_topic_mapping)
+#     print_LDA_suggest(post_topic_mapping, course_results)
