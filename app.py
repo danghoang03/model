@@ -45,23 +45,30 @@ def suggest():
         if not student_email:
             return jsonify({"error": "Thiếu student_email"}), 400
 
+        # Danh sách N bài post mà sinh viên chạy thử gần đây nhất
         recent_posts = get_student_recent_running_posts(student_email, N)
         if not recent_posts:
             return jsonify({"error": "Không tìm thấy bài post mà sinh viên đã chạy gần đây"}), 404
 
+        # Tính phân phối chủ đề gốc của sinh viên  
         base_distribution = compute_average_distribution(recent_posts)
         if base_distribution is None:
             return jsonify({"error": "Lỗi tính toán phân phối chủ đề gốc"}), 500
 
+        # Lấy phân phối chủ đề của tài liệu môn học
         subject_materials = load_subject_materials(subject)
+        
+        # Tìm phần nội dung mà sinh viên đang quan tâm
         interest_label = determine_student_interest(base_distribution, subject_materials)
         if not interest_label:
             return jsonify({"error": "Không xác định được nội dung mà sinh viên quan tâm"}), 500
 
+        # Lấy ra danh sách các bài post phù hợp với nội dung mà sinh viên quan tâm
         candidate_posts = get_candidate_posts(subject, interest_label, 3, 3)
         if not candidate_posts:
             return jsonify({"error": "Không tìm thấy bài post ứng viên"}), 404
 
+        # Gợi ý N bài post phù hợp nhất
         best_suggest = eval_best_suggest(candidate_posts, base_distribution, N)
         if not best_suggest:
             return jsonify({"error": "Không tìm thấy gợi ý phù hợp"}), 404
@@ -82,19 +89,23 @@ def trace():
         if not post_id:
             return jsonify({"error": "Thiếu post_id"}), 400
 
-        course_name, preprocessed_post = get_post_from_db(post_id)
-        if course_name is None:
+        # Load bài post có ID tương ứng từ DB
+        subject, preprocessed_post = get_post_from_db(post_id)
+        if subject is None:
             return jsonify({"error": f"Không tìm thấy bài post với post_id {post_id}"}), 404
 
-        lda_model_path = os.path.join(MODELS_DIR, f"{course_name}_lda.model")
-        dictionary_path = os.path.join(MODELS_DIR, f"{course_name}_dictionary.dict")
+        # Load model LDA + từ điển môn học tương ứng
+        lda_model_path = os.path.join(MODELS_DIR, f"{subject}_lda.model")
+        dictionary_path = os.path.join(MODELS_DIR, f"{subject}_dictionary.dict")
         lda_model = LdaModel.load(lda_model_path)
         dictionary = Dictionary.load(dictionary_path)
 
-        material_file_path = os.path.join(DATA_DIR, f"eval_{course_name}.pkl")
+        # Load phân phối chủ đề của tài liệu
+        material_file_path = os.path.join(DATA_DIR, f"eval_{subject}.pkl")
         with open(material_file_path, 'rb') as f:
             course_results = load(f)
 
+        # Liên kết bài post với tài liệu tương ứng
         post_result = eval_post(preprocessed_post, dictionary, lda_model)
         post_topic_mapping = tracing_post(post_result, course_results)
         docid_to_labels = invert_mapping(course_results["mapping"])
@@ -135,23 +146,29 @@ def similar_post():
         if not title or not description:
             return jsonify({"error": "Thiếu tiêu đề hoặc mô tả"}), 400
         
+        # Load model LDA + từ điển của môn học tương ứng
         lda_model_path = os.path.join(MODELS_DIR, f"{subject}_lda.model")
         dictionary_path = os.path.join(MODELS_DIR, f"{subject}_dictionary.dict")
         lda_model = LdaModel.load(lda_model_path)
         dictionary = Dictionary.load(dictionary_path)
         
+        # Tiền xử lý bài post mới
         preprocessed_post = preprocess_string(title) + preprocess_string(description)
+        
+        # Tính phân phối chủ đề của bài post mới
         new_post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
         
+        # Lấy tất cả bài post 
         all_posts = get_all_posts_by_subject(subject)
 
+        # So sánh bài post mới và từng bài post đã có
         similar_posts = []
         for post_id, title, description in all_posts:
             # Preprocess bài post cũ
             preprocessed_post = preprocess_string(title) + preprocess_string(description)
             post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
 
-            # Tính độ tương tự
+            # Tính độ tương tự cosine, nếu cosine-similarity > 0.8 thì thêm bài post vào danh sách bài post tương tự
             sim = compute_cosine_similarity(np.array(new_post_dist).ravel(), np.array(post_dist).ravel())
             if sim >= 0.8:
                 similar_posts.append({
