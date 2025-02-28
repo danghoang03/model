@@ -1,9 +1,12 @@
 from flask import Flask, request, jsonify
 import os
 import traceback
+import numpy as np
 from pickle import load
+from gensim.parsing.preprocessing import preprocess_string
 from gensim.models import LdaModel
 from gensim.corpora.dictionary import Dictionary
+from numpy import ravel
 from suggest_post import (
     get_student_recent_running_posts,
     compute_average_distribution,
@@ -21,6 +24,12 @@ from tracing_post import (
     update_trace
 )
 
+from similar_post import (
+    get_all_posts_by_subject,
+    get_post_distribution,
+    compute_cosine_similarity
+)
+
 MODELS_DIR = "models"
 DATA_DIR = "data"
 
@@ -31,7 +40,7 @@ def suggest():
     try:
         data = request.get_json()
         student_email = data.get("student_email")
-        subject = data.get("subject", "DSA")  # Mặc định môn DSA nếu không truyền
+        subject = "DSA"
 
         if not student_email:
             return jsonify({"error": "Thiếu student_email"}), 400
@@ -111,6 +120,51 @@ def trace():
             "post_id": post_id,
             "trace": trace_str
         })
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/similar_post', methods=['POST'])
+def similar_post():
+    try:
+        data = request.get_json()
+        title = data.get("title")
+        description = data.get("description")
+        subject = "DSA"
+        
+        if not title or not description:
+            return jsonify({"error": "Thiếu tiêu đề hoặc mô tả"}), 400
+        
+        lda_model_path = os.path.join(MODELS_DIR, f"{subject}_lda.model")
+        dictionary_path = os.path.join(MODELS_DIR, f"{subject}_dictionary.dict")
+        lda_model = LdaModel.load(lda_model_path)
+        dictionary = Dictionary.load(dictionary_path)
+        
+        preprocessed_post = preprocess_string(title) + preprocess_string(description)
+        new_post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
+        
+        all_posts = get_all_posts_by_subject(subject)
+
+        similar_posts = []
+        for post_id, title, description in all_posts:
+            # Preprocess bài post cũ
+            preprocessed_post = preprocess_string(title) + preprocess_string(description)
+            post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
+
+            # Tính độ tương tự
+            sim = compute_cosine_similarity(np.array(new_post_dist).ravel(), np.array(post_dist).ravel())
+            if sim >= 0.8:
+                similar_posts.append({
+                    "post_id": post_id,
+                    "title": title,
+                    "similarity": round(float(sim), 3)
+                })
+                
+        similar_posts.sort(key=lambda x: x["similarity"], reverse=True)
+        return jsonify({
+            "similar_posts": similar_posts
+        })
+        
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
