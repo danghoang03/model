@@ -1,0 +1,62 @@
+{
+    "Programming Fundamentals": {
+      "Basic Components": {
+        "Program Structure": "Introduction to C++ program organization including preprocessor directives, the main function, and the separation of global and local variables.",
+        "Variables and Data Types": "Discussion of primitive data types, variable declaration rules, memory size of types, and the importance of type conversions.",
+        "Comments and Coding Style": "Explanation of single-line and block comments, along with basic guidelines for writing clear and maintainable code."
+      },
+      "Operations and Libraries": {
+        "Arithmetic Operators": "Covers basic arithmetic operations such as addition, subtraction, multiplication, division, and modulo operations.",
+        "Bitwise and Logical Operators": "Details on bitwise operators (e.g., &, |, ^, ~) and logical operators (e.g., &&, ||, !) used for data manipulation and control flow.",
+        "Assignment Operations and Type Conversion": "Explains simple and compound assignment operators, as well as implicit and explicit type conversions in C++.",
+        "Macro Definitions": "Introduction to preprocessor directives for defining constants and macros, including multi-line definitions."
+      },
+      "Libraries": {
+        "File IO": "Overview of file input/output operations using ifstream, ofstream, and fstream for reading and writing files.",
+        "String Library": "Usage of C++ string handling functions, including concatenation, comparison, and length determination.",
+        "Header Files and Coding Conventions": "Discussion on the separation between declarations and definitions, and the importance of using header files for better code organization."
+      },
+      "Control Flow - If/Else": {
+        "Relational and Logical Operators": "Understanding operators used to compare values and combine boolean expressions.",
+        "If-Else Statements": "Construction and use of if, if-else, and nested conditionals to control program execution.",
+        "Switch Statements and Enumerated Types": "Usage of the switch-case structure for multi-way branching and defining enums for a list of possible values."
+      },
+      "Control Flow - Loops": {
+        "While Loop": "Usage and syntax of the while loop for executing statements as long as a condition is true.",
+        "Do-While Loop": "Explanation of the do-while loop which guarantees at least one execution before checking the condition.",
+        "For Loop": "Iterative control using the for loop that integrates initialization, condition-checking, and increment/decrement in a single statement.",
+        "Loop Control Statements": "Techniques using break and continue to alter the flow of loops, as well as the implementation of nested loops."
+      },
+      "Arrays": {
+        "Definition of Array": "An array is a contiguous collection of elements of the same type stored in memory.",
+        "One-Dimensional Arrays": "Covers declaration, initialization, and basic input/output operations for one-dimensional arrays.",
+        "Two-Dimensional Arrays": "Describes the declaration, initialization, and usage of two-dimensional arrays for handling matrix-like data.",
+        "Applications of Arrays": "Explains practical applications such as managing collections of data in programming tasks."
+      },
+      "Functions": {
+        "Definition and Importance": "A function is a unit of computation that receives input, processes it, and returns an output. Functions help in organizing code, reusing logic, and improving maintainability.",
+        "Types of Functions": "Includes built-in library functions, user-defined functions, and inline functions.",
+        "Parameter Passing": "Describes different methods such as pass by value and pass by reference (using pointers in C).",
+        "Function Call Mechanisms": "Covers how functions are called, executed, and how variable scopes and lifetimes are managed."
+     },
+     "Pointers": {
+        "Basics of Pointers": "Introduces pointers as variables that store memory addresses, which are essential for dynamic memory allocation and efficient array manipulation.",
+        "Pointer Operations": "Covers pointer declaration, initialization, arithmetic, and basic operations.",
+        "Pointers in Function Parameters": "Explains passing pointers to functions to enable modification of arguments and accessing arrays.",
+        "Dynamic Memory Allocation": "Describes the use of pointers in allocating and deallocating memory at runtime.",
+        "Pointers and Arrays": "Discusses the relationship between pointers and arrays, including how arrays decay to pointers when passed to functions."
+     },
+     "Strings": {
+        "Strings in C": "Defines strings as arrays of characters terminated by a null character, and introduces standard functions for string manipulation in C.",
+        "Strings in C++": "Explains the use of the C++ string class, which provides various methods for easier string handling.",
+        "String Operations": "Covers declaration, initialization, and manipulation techniques for strings in both C and C++."
+     },
+     "Object-Oriented Programming": {
+        "Basic Concepts": "Introduces fundamental OOP concepts such as classes, objects, encapsulation, and abstraction.",
+        "This Pointer and Access Specifiers": "Discusses the role of the 'this' pointer, along with access specifiers to control the visibility of class members.",
+        "Constructors and Destructors": "Covers special member functions for initializing objects and cleaning up resources.",
+        "Operator Overloading": "Describes how to redefine the behavior of standard operators for user-defined types.",
+        "Advanced OOP Topics": "Includes discussions on static members, const members, friend functions/classes, and best practices for organizing class code."
+     }
+    }
+}
