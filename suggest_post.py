@@ -33,7 +33,7 @@ def get_student_recent_running_posts(student_email, limit):
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
     query = """
-        SELECT DISTINCT post_id, time
+        SELECT post_id, time, score
         FROM studentRunTestcase
         WHERE student_mail = %s
         ORDER BY time DESC
@@ -42,7 +42,20 @@ def get_student_recent_running_posts(student_email, limit):
     cursor.execute(query, (student_email, limit))
     results = cursor.fetchall()
     conn.close()
-    return [res[0] for res in results]
+    
+    weighted_posts = []
+    error_factor = 1.5  # Hệ số tăng cho bài chạy sai.
+    # Gán trọng số giảm dần: bài chạy đầu tiên có trọng số cao nhất.
+    for i, (post_id, time, score) in enumerate(results):
+        base_weight = (limit - i) / limit  # Ví dụ nếu limit=3: trọng số = 1, 0.67, 0.33
+        # Nếu score == 0 => tăng trọng số
+        if score == 0:
+            weight = base_weight * error_factor
+        else:
+            weight = base_weight
+        weighted_posts.append((post_id, weight))
+    return weighted_posts
+    
 
 def load_post_topic_distribution(post_id):
     """
@@ -57,20 +70,27 @@ def load_post_topic_distribution(post_id):
     if post_id in data:
         return np.array(data[post_id]["lda"])
     
-def compute_average_distribution(post_ids):
+def compute_average_distribution(weighted_posts):
     """
-    Tính trung bình phân phối chủ đề của danh sách post_ids.
+    Tính trung bình có trọng số của phân phối chủ đề cho danh sách bài post.
+    weighted_posts là danh sách tuple (post_id, weight)
     """
     distributions = []
-    for pid in post_ids:
+    weights = []
+    for pid, weight in weighted_posts:
         try:
             lda_dist = load_post_topic_distribution(pid)
             distributions.append(lda_dist)
+            weights.append(weight)
         except Exception as e:
             print(f"Error loading post {pid}: {e}")
     if not distributions:
         return None
-    return np.mean(distributions, axis=0)
+    distributions = np.array(distributions, dtype=float)
+    weights = np.array(weights, dtype=float)
+    # Tính trung bình có trọng số: sum(w_i * vec_i) / sum(w_i)
+    weighted_avg = np.average(distributions, axis=0, weights=weights)
+    return weighted_avg
 
 def load_subject_materials(subject):
     """

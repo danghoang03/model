@@ -45,13 +45,13 @@ def suggest():
         if not student_email:
             return jsonify({"error": "Thiếu student_email"}), 400
 
-        # Danh sách N bài post mà sinh viên chạy thử gần đây nhất
-        recent_posts = get_student_recent_running_posts(student_email, N)
-        if not recent_posts:
+        # Danh sách N bài post mà sinh viên chạy thử gần đây nhất kèm trọng số
+        weighted_posts = get_student_recent_running_posts(student_email, N)
+        if not weighted_posts:
             return jsonify({"error": "Không tìm thấy bài post mà sinh viên đã chạy gần đây"}), 404
 
-        # Tính phân phối chủ đề gốc của sinh viên  
-        base_distribution = compute_average_distribution(recent_posts)
+        # Tính phân phối chủ đề gốc của sinh viên dựa trên trọng số
+        base_distribution = compute_average_distribution(weighted_posts)
         if base_distribution is None:
             return jsonify({"error": "Lỗi tính toán phân phối chủ đề gốc"}), 500
 
