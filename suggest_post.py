@@ -199,7 +199,8 @@ def eval_best_suggest(candidate_posts, base_distribution, n):
     all_groups = combinations(candidate_posts, n)  # Tất cả tổ hợp chọn n từ candidate_posts
     
     for group in all_groups:
-        group_avg = compute_average_distribution(group)
+        weighted_group = [(pid, 1.0) for pid in group]
+        group_avg = compute_average_distribution(weighted_group)
         group_avg = np.array(group_avg , dtype=float).ravel()
         dist = cosine(base_distribution, group_avg)
         if dist < best_distance:
@@ -211,14 +212,13 @@ def eval_best_suggest(candidate_posts, base_distribution, n):
 
 # def main():
 #     student_email = "son.nguyenthai@hcmut.edu.vn"
-#     recent_posts = get_student_recent_running_posts(student_email, N)
-#     if not recent_posts:
-#         print("No recent student run testcases found.")
-#         return
-#     print(f"Recent student run posts: {recent_posts}")
+#     weighted_posts = get_student_recent_running_posts(student_email, N)
+#     if not weighted_posts:
+#         print("Không tìm thấy bài post mà sinh viên đã chạy gần đây")
+#     print(weighted_posts)
     
 #     # Tính phân phối chủ đề gốc của sinh viên
-#     base_distribution = compute_average_distribution(recent_posts)
+#     base_distribution = compute_average_distribution(weighted_posts)
 #     if base_distribution is None:
 #         print("Error computing base distribution.")
 #         return
