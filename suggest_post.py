@@ -21,7 +21,7 @@ DB_CONFIG = {
 }
 
 # Số lượng bài post được lấy để tính pp chủ đề cho sinh viên
-N = 2
+N = 3
 # Số lần lặp
 ITERATIONS = 1000
 

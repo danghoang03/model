@@ -25,6 +25,7 @@ from tracing_post import (
 )
 
 from similar_post import (
+    get_post_information,
     get_all_posts_by_subject,
     get_post_distribution,
     compute_cosine_similarity
@@ -49,6 +50,10 @@ def suggest():
         weighted_posts = get_student_recent_running_posts(student_email, N)
         if not weighted_posts:
             return jsonify({"error": "Không tìm thấy bài post mà sinh viên đã chạy gần đây"}), 404
+        
+        if len(weighted_posts) < N:
+            error_message = f"Sinh viên phải chạy thử ít nhất {N} bài post để nhận được gợi ý"
+            return jsonify({"error": error_message}), 400
 
         # Tính phân phối chủ đề gốc của sinh viên dựa trên trọng số
         base_distribution = compute_average_distribution(weighted_posts)
@@ -139,8 +144,11 @@ def trace():
 def similar_post():
     try:
         data = request.get_json()
-        title = data.get("title")
-        description = data.get("description")
+        post_id = data.get("post_id")
+        post_data = get_post_information(post_id)
+        title = post_data["title"]
+        description = post_data["description"]
+        tags = post_data["tags"] # Danh sách các tag của bài post
         subject = "DSA"
         
         if not title or not description:
@@ -154,6 +162,9 @@ def similar_post():
         
         # Tiền xử lý bài post mới
         preprocessed_post = preprocess_string(title) + preprocess_string(description)
+        if len(tags) > 0:
+            for tag in tags:
+                preprocessed_post += preprocess_string(tag)
         
         # Tính phân phối chủ đề của bài post mới
         new_post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)

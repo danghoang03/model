@@ -10,7 +10,7 @@ CREATE TABLE users(
 
 CREATE TABLE posts(
   id integer PRIMARY KEY,
-  user_mail VARCHAR(50) not null REFERENCES users(mail),
+  student_mail VARCHAR(50) not null REFERENCES users(mail),
   verified_teacher_mail VARCHAR(50) REFERENCES users(mail),
   title VARCHAR(255) not null,
   description varchar(1500) not null,
@@ -19,13 +19,18 @@ CREATE TABLE posts(
   created_at timestamp
 );
 
-CREATE TABLE post_topics(
-  topic varchar(255) not null,
-  post_id integer not null REFERENCES posts(id),
-  PRIMARY KEY (topic, post_id)
+CREATE TABLE tags(
+  id integer PRIMARY KEY,
+  name varchar(255) not null
 );
 
-CREATE TABLE teacherVerifyPost(
+CREATE TABLE post_has_tags(
+  post_id integer not null REFERENCES posts(id),
+  tag_id integer not null REFERENCES tags(id),
+  PRIMARY KEY (post_id, tag_id)
+);
+
+CREATE TABLE teacher_verify_post(
   post_id integer not null REFERENCES posts(id),
   teacher_mail VARCHAR(50) not null REFERENCES users(mail),
   PRIMARY KEY (post_id)
@@ -52,7 +57,7 @@ CREATE TABLE comments(
   PRIMARY KEY (id, post_id)
 );
 
-CREATE TABLE UserlikeComment(
+CREATE TABLE user_like_comment(
   user_mail VARCHAR(50) not null REFERENCES users(mail), 
   comment_id integer not null,
   post_id integer not null,
@@ -67,23 +72,13 @@ CREATE TABLE testcases(
   PRIMARY KEY (post_id)
 );
 
-CREATE TABLE files(
-  id integer not null,
-  student_mail varchar(50) not null REFERENCES users(mail), 
-  title varchar(100),
-  path varchar(100),
-  PRIMARY KEY (id, student_mail)
-);
-
-CREATE TABLE studentRunTestcase(
+CREATE TABLE student_run_testcases(
+  ID integer PRIMARY KEY,
   post_id integer not null REFERENCES testcases(post_id),
-  file_id integer not null,
-  student_mail varchar(50) not null, 
+  student_mail varchar(50) not null REFERENCES users(mail), 
   log varchar(50),
   score integer,
-  time timestamp,
-  PRIMARY KEY(post_id, file_id, student_mail),
-  FOREIGN KEY (file_id, student_mail) REFERENCES files(id, student_mail)
+  time timestamp
 );
 
 CREATE INDEX idx_studentRunTestcase_student_mail_time
@@ -110,7 +105,7 @@ INSERT INTO users (first_name, last_name, mail, password, maso, role, created_at
 ('D', 'Nguyen', 'd.nguyen@hcmut.edu.vn', '123456', '2110004', 'SV', NOW()),
 ('E', 'Nguyen', 'e.nguyen@hcmut.edu.vn', '123456', '2110005', 'SV', NOW());
 
-INSERT INTO posts (id, user_mail, verified_teacher_mail, title, description, subject, trace, created_at) VALUES
+INSERT INTO posts (id, student_mail, verified_teacher_mail, title, description, subject, trace, created_at) VALUES
 (1, 'dang.hoang1205@hcmut.edu.vn', NULL, 'Test Cases for Stack Operations', 'This post provides detailed test cases for stack operations to ensure correctness and efficiency. The test cases cover basic operations (Push, Pop, Top): Verify functionality for both empty and non-empty stacks, and edge cases like stack overflow.', 'DSA', 'Data Structures and Algorithms > Chap 5: Stack and Queue > Basic operations of Stacks', NOW()),
 (2, 'dang.hoang1205@hcmut.edu.vn', NULL, 'Test Cases for Quick Sort Algorithms', 'This post provides detailed test cases for Quick Sort algorithm to ensure correctness and efficiency.', 'DSA', 'Data Structures and Algorithms > Chap 3: Recursion > Basic components of recursive algorithms', NOW()),
 (3, 'dang.hoang1205@hcmut.edu.vn', NULL, 'Stack Implementation and Use Cases', 'This post explains stack data structure implementation and its applications in function calls, expression evaluation, and backtracking.', 'DSA', 'Data Structures and Algorithms > Chap 5: Stack and Queue > Stack', NOW()),
@@ -162,7 +157,7 @@ INSERT INTO testcases (post_id, input, expected) VALUES
 
 INSERT INTO files (id, student_mail, title, path) VALUES (1, 'son.nguyenthai@hcmut.edu.vn', 'main.cpp', null);
 
-INSERT INTO studentRunTestcase (post_id, file_id, student_mail, log, score, time) VALUES
+INSERT INTO student_run_testcases (post_id, file_id, student_mail, log, score, time) VALUES
 (11, 1, 'son.nguyenthai@hcmut.edu.vn', null, 1, NOW()),
 (12, 1, 'son.nguyenthai@hcmut.edu.vn', null, 0, NOW()),
 (13, 1, 'son.nguyenthai@hcmut.edu.vn', null, 1, NOW()),
