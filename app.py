@@ -252,8 +252,8 @@ def similar_post():
         for post in all_posts:
             if post[2] >= threshold:
                 similar_posts.append({
-                    "post_id": post[0]
-                    "title": post[1]
+                    "post_id": post[0],
+                    "title": post[1],
                     "similarity": post[2]
                 })
         
