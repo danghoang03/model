@@ -179,15 +179,84 @@ def similar_post():
             preprocessed_post = preprocess_string(title) + preprocess_string(description)
             post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
 
-            # Tính độ tương tự cosine, nếu cosine-similarity > 0.8 thì thêm bài post vào danh sách bài post tương tự
+            # Tính độ tương tự cosine, nếu cosine-similarity > 0.9 thì thêm bài post vào danh sách bài post tương tự
             sim = compute_cosine_similarity(np.array(new_post_dist).ravel(), np.array(post_dist).ravel())
-            if sim >= 0.8:
+            if sim >= 0.9:
                 similar_posts.append({
                     "post_id": post_id,
                     "title": title,
                     "similarity": round(float(sim), 3)
                 })
                 
+        similar_posts.sort(key=lambda x: x["similarity"], reverse=True)
+        return jsonify({
+            "similar_posts": similar_posts
+        })
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+    
+@app.route('/related_post', methods=['POST'])
+def similar_post():
+    try:
+        data = request.get_json()
+        post_id = data.get("post_id")
+        post_data = get_post_information(post_id)
+        title = post_data["title"]
+        description = post_data["description"]
+        tags = post_data["tags"] # Danh sách các tag của bài post
+        subject = "DSA"
+        
+        if not title or not description:
+            return jsonify({"error": "Thiếu tiêu đề hoặc mô tả"}), 400
+        
+        # Load model LDA + từ điển của môn học tương ứng
+        lda_model_path = os.path.join(MODELS_DIR, f"{subject}_lda.model")
+        dictionary_path = os.path.join(MODELS_DIR, f"{subject}_dictionary.dict")
+        lda_model = LdaModel.load(lda_model_path)
+        dictionary = Dictionary.load(dictionary_path)
+        
+        # Tiền xử lý bài post mới
+        preprocessed_post = preprocess_string(title) + preprocess_string(description)
+        if len(tags) > 0:
+            for tag in tags:
+                preprocessed_post += preprocess_string(tag)
+        
+        # Tính phân phối chủ đề của bài post mới
+        new_post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
+        
+        # Lấy tất cả bài post 
+        all_posts = get_all_posts_by_subject(subject)
+        
+        threshold = 0.5
+
+        # So sánh bài post mới và từng bài post đã có
+        similar_posts = []
+        posts = []
+        sum = 0
+        for post_id, title, description in all_posts:
+            # Preprocess bài post cũ
+            preprocessed_post = preprocess_string(title) + preprocess_string(description)
+            post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
+
+            # Tính độ tương tự cosine
+            sim = compute_cosine_similarity(np.array(new_post_dist).ravel(), np.array(post_dist).ravel())
+            sum += sim
+            posts.append(post_id, title, round(float(sim), 3))
+        
+        avg_sim = sum/len(all_posts)
+        if avg_sim > threshold:
+            threshold = avg_sim
+
+        for post in all_posts:
+            if post[2] >= threshold:
+                similar_posts.append({
+                    "post_id": post[0]
+                    "title": post[1]
+                    "similarity": post[2]
+                })
+        
         similar_posts.sort(key=lambda x: x["similarity"], reverse=True)
         return jsonify({
             "similar_posts": similar_posts
