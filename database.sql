@@ -155,13 +155,11 @@ INSERT INTO testcases (post_id, input, expected) VALUES
 (22, 123, 'successfull'),
 (23, 123, 'successfull');
 
-INSERT INTO files (id, student_mail, title, path) VALUES (1, 'son.nguyenthai@hcmut.edu.vn', 'main.cpp', null);
-
-INSERT INTO student_run_testcases (post_id, file_id, student_mail, log, score, time) VALUES
-(11, 1, 'son.nguyenthai@hcmut.edu.vn', null, 1, NOW()),
-(12, 1, 'son.nguyenthai@hcmut.edu.vn', null, 0, NOW()),
-(13, 1, 'son.nguyenthai@hcmut.edu.vn', null, 1, NOW()),
-(14, 1, 'son.nguyenthai@hcmut.edu.vn', null, 1, NOW());
+INSERT INTO student_run_testcases (id, post_id, student_mail, log, score, time) VALUES
+(1, 11, 'son.nguyenthai@hcmut.edu.vn', null, 1, NOW()),
+(2, 12, 'son.nguyenthai@hcmut.edu.vn', null, 0, NOW()),
+(3, 13, 'son.nguyenthai@hcmut.edu.vn', null, 1, NOW()),
+(4, 14, 'son.nguyenthai@hcmut.edu.vn', null, 1, NOW());
 
 INSERT INTO interactions (id, user_mail, post_id, created_at, type, rating, islike) VALUES
 (1, 'dang.hoang1205@hcmut.edu.vn', 5, NOW(), 'rating', 4.0, NULL),

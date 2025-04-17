@@ -34,7 +34,7 @@ def get_student_recent_running_posts(student_email, limit):
     cursor = conn.cursor()
     query = """
         SELECT post_id, time, score
-        FROM studentRunTestcase
+        FROM student_run_testcases
         WHERE student_mail = %s
         ORDER BY time DESC
         LIMIT %s;
@@ -137,7 +137,7 @@ def determine_student_interest(base_distribution, subject_materials):
     trace_string = f"{course} > {chapter}"
     return trace_string
 
-def get_candidate_posts(subject, interest_label, limit_hot, limit_new):
+def get_candidate_posts(subject, interest_label, limit_hot, limit_new, recent_running_posts):
     """
     Lấy ra 20 bài post ứng với nội dung mà sinh viên quan tâm dựa trên trường trace,
     gồm 10 bài post có độ hot cao nhất (tổng số lượt tương tác + số comment)
@@ -147,6 +147,9 @@ def get_candidate_posts(subject, interest_label, limit_hot, limit_new):
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
     like_pattern = f"{interest_label}%"
+    
+    # Trích xuất danh sách ID các post cần loại trừ (Từ danh sách các post sinh viên chạy gần đây nhất)
+    excluded_ids = [item[0] for item in recent_running_posts]
     
     # Lấy N bài post hot nhất: tổng số lượt tương tác + số comment
     query = """
@@ -162,11 +165,11 @@ def get_candidate_posts(subject, interest_label, limit_hot, limit_new):
             FROM comments
             GROUP BY post_id
         ) c ON p.id = c.post_id
-        WHERE p.subject = %s AND p.trace LIKE %s
+        WHERE p.subject = %s AND p.trace LIKE %s AND p.id NOT IN %s
         ORDER BY hot_score DESC, p.created_at DESC
         LIMIT %s
     """
-    cursor.execute(query, (subject, like_pattern, limit_hot))
+    cursor.execute(query, (subject, like_pattern, tuple(excluded_ids), limit_hot))
     hot_results = cursor.fetchall()
     hot_posts = [r[0] for r in hot_results]
     
@@ -174,14 +177,13 @@ def get_candidate_posts(subject, interest_label, limit_hot, limit_new):
     query = """
         SELECT id
         FROM posts
-        WHERE subject = %s AND trace LIKE %s
-        ORDER BY created_at DESC
+        WHERE subject = %s AND trace LIKE %s AND id NOT IN %s
+        ORDER BY created_at DESC 
         LIMIT %s;
     """
-    cursor.execute(query, (subject, like_pattern, limit_new))
+    cursor.execute(query, (subject, like_pattern, tuple(excluded_ids), limit_new))
     new_results = cursor.fetchall()
     new_posts = [r[0] for r in new_results]
-    
     conn.close()
     
     candidate_posts = list(set(hot_posts + new_posts))
@@ -233,7 +235,7 @@ def eval_best_suggest(candidate_posts, base_distribution, n):
 #         return
 #     print(f"Student appears to be interested in material: {interest_label}")
     
-#     candidate_posts = get_candidate_posts(subject, interest_label, 3, 3)
+#     candidate_posts = get_candidate_posts(subject, interest_label, 5, 5, weighted_posts)
 #     if not candidate_posts:
 #         print("No candidate posts found matching the interest label.")
 #         return

@@ -19,14 +19,14 @@ def get_post_information(post_id):
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
     query = """
-        SELECT title, description 
+        SELECT title, description, subject
         FROM posts
         WHERE id = %s;
     """
     cursor.execute(query, (post_id,))
     post_result = cursor.fetchone()
-    title, description = post_result
-    post_data = {"title": title, "description": description}
+    title, description, subject = post_result
+    post_data = {"title": title, "description": description, "subject": subject}
     
     query = """
         SELECT T.name
@@ -50,18 +50,31 @@ def get_post_distribution(post, dictionary, lda_model):
     lda_a_gamma = lda_model.inference(chunk=chunk)[0]
     return lda_a_gamma
 
-def get_all_posts_by_subject(subject):
+def get_all_posts_by_subject(subject, post_id):
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
     query = """
-        SELECT id, title, description
-        FROM posts
-        WHERE subject = %s;
+        SELECT
+            p.id,
+            p.title,
+            p.description,
+            COALESCE(ARRAY_AGG(t.name ORDER BY t.name), ARRAY[]::varchar[]) AS tags
+        FROM
+            posts p
+        LEFT JOIN
+            post_has_tags pht ON p.id = pht.post_id
+        LEFT JOIN
+            tags t ON pht.tag_id = t.id
+        WHERE
+            p.subject = %s AND p.id != %s
+        GROUP BY
+            p.id, p.title, p.description  
+        ORDER BY
+            p.id; 
     """
-    cursor.execute(query, (subject,))
+    cursor.execute(query, (subject, post_id))
     results = cursor.fetchall()
     conn.close()
-    # Mỗi phần tử results là (id, title, description)
     return results
 
 def compute_cosine_similarity(vec1, vec2):

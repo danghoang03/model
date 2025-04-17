@@ -69,7 +69,7 @@ def suggest():
             return jsonify({"error": "Không xác định được nội dung mà sinh viên quan tâm"}), 500
 
         # Lấy ra danh sách các bài post phù hợp với nội dung mà sinh viên quan tâm
-        candidate_posts = get_candidate_posts(subject, interest_label, 3, 3)
+        candidate_posts = get_candidate_posts(subject, interest_label, 3, 3, weighted_posts)
         if not candidate_posts:
             return jsonify({"error": "Không tìm thấy bài post ứng viên"}), 404
 
@@ -149,7 +149,7 @@ def similar_post():
         title = post_data["title"]
         description = post_data["description"]
         tags = post_data["tags"] # Danh sách các tag của bài post
-        subject = "DSA"
+        subject = post_data["subject"]
         
         if not title or not description:
             return jsonify({"error": "Thiếu tiêu đề hoặc mô tả"}), 400
@@ -162,9 +162,8 @@ def similar_post():
         
         # Tiền xử lý bài post mới
         preprocessed_post = preprocess_string(title) + preprocess_string(description)
-        if len(tags) > 0:
-            for tag in tags:
-                preprocessed_post += preprocess_string(tag)
+        for tag in tags:
+            preprocessed_post += preprocess_string(tag)
         
         # Tính phân phối chủ đề của bài post mới
         new_post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
@@ -174,9 +173,12 @@ def similar_post():
 
         # So sánh bài post mới và từng bài post đã có
         similar_posts = []
-        for post_id, title, description in all_posts:
+        for post_id, title, description, tags in all_posts:
             # Preprocess bài post cũ
             preprocessed_post = preprocess_string(title) + preprocess_string(description)
+            if tags[0] != None:
+                for tag in tags:
+                    preprocessed_post += preprocess_string(tag)
             post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
 
             # Tính độ tương tự cosine, nếu cosine-similarity > 0.9 thì thêm bài post vào danh sách bài post tương tự
@@ -188,10 +190,13 @@ def similar_post():
                     "similarity": round(float(sim), 3)
                 })
                 
-        similar_posts.sort(key=lambda x: x["similarity"], reverse=True)
-        return jsonify({
-            "similar_posts": similar_posts
-        })
+        if len(similar_posts) > 0:
+            similar_posts.sort(key=lambda x: x["similarity"], reverse=True)
+            return jsonify({
+                "similar_posts": similar_posts
+            })
+        else:
+            return jsonify({"error": "Không tìm thấy bài viết tương đồng"}), 404
         
     except Exception as e:
         traceback.print_exc()
@@ -206,7 +211,7 @@ def similar_post():
         title = post_data["title"]
         description = post_data["description"]
         tags = post_data["tags"] # Danh sách các tag của bài post
-        subject = "DSA"
+        subject = post_data["subject"]
         
         if not title or not description:
             return jsonify({"error": "Thiếu tiêu đề hoặc mô tả"}), 400
@@ -219,33 +224,42 @@ def similar_post():
         
         # Tiền xử lý bài post mới
         preprocessed_post = preprocess_string(title) + preprocess_string(description)
-        if len(tags) > 0:
-            for tag in tags:
-                preprocessed_post += preprocess_string(tag)
+        for tag in tags:
+            preprocessed_post += preprocess_string(tag)
         
         # Tính phân phối chủ đề của bài post mới
         new_post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
         
         # Lấy tất cả bài post 
-        all_posts = get_all_posts_by_subject(subject)
+        all_posts = get_all_posts_by_subject(subject, post_id)
+        if len(all_posts) == 0:
+            return jsonify({"error": "Không tìm thấy bài viết liên quan"}), 404
         
         threshold = 0.5
 
         # So sánh bài post mới và từng bài post đã có
         similar_posts = []
         posts = []
-        sum = 0
-        for post_id, title, description in all_posts:
+        for post_id, title, description, tags in all_posts:
             # Preprocess bài post cũ
             preprocessed_post = preprocess_string(title) + preprocess_string(description)
+            if tags[0] != None:
+                for tag in tags:
+                    preprocessed_post += preprocess_string(tag)
             post_dist = get_post_distribution(preprocessed_post, dictionary, lda_model)
 
             # Tính độ tương tự cosine
             sim = compute_cosine_similarity(np.array(new_post_dist).ravel(), np.array(post_dist).ravel())
-            sum += sim
-            posts.append(post_id, title, round(float(sim), 3))
+            posts.append((post_id, title, round(float(sim), 3)))
         
-        avg_sim = sum/len(all_posts)
+        # Sắp xếp tất cả kết quả theo similarity giảm dần
+        posts.sort(key=lambda x: x[2], reverse=True)
+        # Xác định số lượng bài viết lấy trung bình (tối đa 10)
+        top_k = min(10, len(posts))
+        posts = posts[:top_k]
+        sum = sum(item[2] for item in posts)
+        avg_sim = sum/top_k
+        
         if avg_sim > threshold:
             threshold = avg_sim
 
@@ -257,11 +271,13 @@ def similar_post():
                     "similarity": post[2]
                 })
         
-        similar_posts.sort(key=lambda x: x["similarity"], reverse=True)
-        return jsonify({
-            "similar_posts": similar_posts
-        })
-        
+        if len(similar_post) > 0:
+            return jsonify({
+                "similar_posts": similar_posts
+            })
+        else:
+            return jsonify({"error": "Không tìm thấy bài viết liên quan"}), 404
+                
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500

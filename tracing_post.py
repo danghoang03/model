@@ -166,7 +166,7 @@ def update_trace(post_id, trace_str):
     query = """
         UPDATE posts SET trace = %s WHERE ID = %s;
     """
-    cursor.execute(query, (trace, post_id))
+    cursor.execute(query, (trace_str, post_id))
     conn.commit()
     cursor.close()
     conn.close()
