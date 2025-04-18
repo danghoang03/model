@@ -4,6 +4,7 @@ from gensim.models import LdaModel
 from gensim.corpora.dictionary import Dictionary
 from gensim.parsing.preprocessing import preprocess_string
 from scipy.spatial.distance import cosine
+import numpy as np
 
 MODELS_DIR = "models"
 DATA_DIR = "data"
@@ -58,9 +59,16 @@ def get_all_posts_by_subject(subject, post_id):
             p.id,
             p.title,
             p.description,
-            COALESCE(ARRAY_AGG(t.name ORDER BY t.name), ARRAY[]::varchar[]) AS tags
+            COALESCE(ARRAY_AGG(t.name ORDER BY t.name), ARRAY[]::varchar[]) AS tags,
+            tc.input,
+            tc.expected,
+            COALESCE(u.last_name || ' ' || u.first_name, '') AS author_name
         FROM
             posts p
+        LEFT JOIN
+            testcases tc ON p.id = tc.post_id
+        LEFT JOIN
+            users u ON p.student_mail = u.mail
         LEFT JOIN
             post_has_tags pht ON p.id = pht.post_id
         LEFT JOIN
@@ -68,7 +76,7 @@ def get_all_posts_by_subject(subject, post_id):
         WHERE
             p.subject = %s AND p.id != %s
         GROUP BY
-            p.id, p.title, p.description  
+            p.id, p.title, p.description, tc.input, tc.expected, u.last_name, u.first_name  
         ORDER BY
             p.id; 
     """

@@ -173,7 +173,7 @@ def similar_post():
 
         # So sánh bài post mới và từng bài post đã có
         similar_posts = []
-        for post_id, title, description, tags in all_posts:
+        for post_id, title, description, tags, input, expected, name in all_posts:
             # Preprocess bài post cũ
             preprocessed_post = preprocess_string(title) + preprocess_string(description)
             if tags[0] != None:
@@ -187,7 +187,11 @@ def similar_post():
                 similar_posts.append({
                     "post_id": post_id,
                     "title": title,
-                    "similarity": round(float(sim), 3)
+                    "similarity": round(float(sim), 3),
+                    "description": description,
+                    "input": input,
+                    "expected": expected,
+                    "author": name
                 })
                 
         if len(similar_posts) > 0:
@@ -240,7 +244,7 @@ def similar_post():
         # So sánh bài post mới và từng bài post đã có
         similar_posts = []
         posts = []
-        for post_id, title, description, tags in all_posts:
+        for post_id, title, description, tags, input, expected, name in all_posts:
             # Preprocess bài post cũ
             preprocessed_post = preprocess_string(title) + preprocess_string(description)
             if tags[0] != None:
@@ -250,7 +254,7 @@ def similar_post():
 
             # Tính độ tương tự cosine
             sim = compute_cosine_similarity(np.array(new_post_dist).ravel(), np.array(post_dist).ravel())
-            posts.append((post_id, title, round(float(sim), 3)))
+            posts.append((post_id, title, round(float(sim), 3), description, input, expected, name))
         
         # Sắp xếp tất cả kết quả theo similarity giảm dần
         posts.sort(key=lambda x: x[2], reverse=True)
@@ -268,7 +272,11 @@ def similar_post():
                 similar_posts.append({
                     "post_id": post[0],
                     "title": post[1],
-                    "similarity": post[2]
+                    "similarity": post[2],
+                    "description": post[3],
+                    "input": post[4],
+                    "expected": post[5],
+                    "author": post[6]
                 })
         
         if len(similar_posts) > 0:
