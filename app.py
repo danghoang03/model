@@ -263,7 +263,7 @@ def similar_post():
         if avg_sim > threshold:
             threshold = avg_sim
 
-        for post in all_posts:
+        for post in posts:
             if post[2] >= threshold:
                 similar_posts.append({
                     "post_id": post[0],
@@ -271,7 +271,7 @@ def similar_post():
                     "similarity": post[2]
                 })
         
-        if len(similar_post) > 0:
+        if len(similar_posts) > 0:
             return jsonify({
                 "similar_posts": similar_posts
             })
