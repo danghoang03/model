@@ -31,6 +31,10 @@ from similar_post import (
     compute_cosine_similarity
 )
 
+from translate import(
+    translate_and_update_post
+)
+
 MODELS_DIR = "models"
 DATA_DIR = "data"
 
@@ -207,7 +211,7 @@ def similar_post():
         return jsonify({"error": str(e)}), 500
     
 @app.route('/related_post', methods=['POST'])
-def similar_post():
+def related_post():
     try:
         data = request.get_json()
         post_id = data.get("post_id")
@@ -289,7 +293,18 @@ def similar_post():
     except Exception as e:
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+    
+@app.route('/translate_post', methods=['POST'])
+def translate_post():
+    try:
+        data = request.get_json()
+        post_id = data.get("post_id")
+        success = translate_and_update_post(post_id)
+                
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
-    # Chạy Flask server tại cổng 5000
-    app.run(host="0.0.0.0", port=5000, debug=True)
+# if __name__ == '__main__':
+#  Chạy Flask server tại cổng 5000
+#  app.run(host="0.0.0.0", port=5000, debug=True)

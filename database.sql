@@ -13,7 +13,9 @@ CREATE TABLE posts(
   student_mail VARCHAR(50) not null REFERENCES users(mail),
   verified_teacher_mail VARCHAR(50) REFERENCES users(mail),
   title VARCHAR(255) not null,
-  description varchar(1500) not null,
+  description VARCHAR(1500) not null,
+  title_en VARCHAR(255),
+  description_en VARCHAR(1500),
   subject VARCHAR(100) not null,
   trace VARCHAR(255),
   created_at timestamp
