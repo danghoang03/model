@@ -32,6 +32,7 @@ from similar_post import (
 )
 
 from translate import(
+    translate_text_gemini,
     translate_and_update_post
 )
 
@@ -299,7 +300,16 @@ def translate_post():
     try:
         data = request.get_json()
         post_id = data.get("post_id")
-        success = translate_and_update_post(post_id)
+        status, message = translate_and_update_post(post_id)
+        
+        if status == 'success':
+            return jsonify({"message": message}), 200
+        elif status == 'no_change':
+            return jsonify({"message": message}), 200
+        elif status == 'rate_limit':
+            return jsonify({"error": message}), 429
+        elif status == 'translation_error':
+            return jsonify({"error": message}), 500 
                 
     except Exception as e:
         traceback.print_exc()

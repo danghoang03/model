@@ -1,7 +1,10 @@
 import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted
 import os
 import psycopg2
 import traceback
+import random
+import time
 from dotenv import load_dotenv
 
 DB_CONFIG = {
@@ -21,7 +24,7 @@ if not GEMINI_API_KEY:
 else:
     try:
         genai.configure(api_key=GEMINI_API_KEY)
-        translation_model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
+        translation_model = genai.GenerativeModel('gemini-2.0-flash-lite')
         print("Đã cấu hình thành công Gemini API.")
     except Exception as e:
         print(f"Lỗi khi cấu hình Gemini API: {e}")
@@ -30,24 +33,35 @@ else:
 def translate_text_gemini(text_to_translate, model):
     """Sử dụng Gemini model để dịch văn bản từ tiếng Việt sang tiếng Anh."""
     if not model:
-        print("Lỗi: Model dịch chưa được khởi tạo.")
+        'error', "Model dịch chưa được khởi tạo."
         return None
-    if not text_to_translate or not isinstance(text_to_translate, str):
-        print("Cảnh báo: Đầu vào không phải là văn bản hợp lệ để dịch.")
-        return None 
 
     prompt = f"Translate the following Vietnamese text to English. Output only the translated text, without any introductory phrases or explanations:\n\nVietnamese: \"{text_to_translate}\"\n\nEnglish:"
+    max_retries=3
+    base_wait_time=1
+    
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            translated_text = response.text.strip()
+            print(f"    -> Dịch thành công (lần thử {attempt + 1})")
+            return 'success', translated_text
+        except ResourceExhausted as e:
+            print(f"    -> Gặp lỗi Rate Limit (429) ở lần thử {attempt + 1}/{max_retries}.")
+            if attempt < max_retries - 1:
+                # Tính thời gian chờ (exponential backoff + random jitter)
+                wait_time = (base_wait_time * (2 ** attempt)) + random.uniform(0.1, 0.5)
+                print(f"    -> Chờ {wait_time:.2f} giây trước khi thử lại...")
+                time.sleep(wait_time)
+            else:
+                print("    -> Đã hết số lần thử lại cho lỗi Rate Limit.")
+                return 'rate_limit_exceeded', f"API rate limit exceeded after {max_retries} retries: {e}"
 
-    try:
-        # Sử dụng generate_content thay vì chat session cho tác vụ đơn giản
-        response = model.generate_content(prompt)
-        # response.text thường chứa kết quả dịch trực tiếp nếu prompt rõ ràng
-        translated_text = response.text.strip()
-        return translated_text
-    except Exception as e:
-        print(f"Lỗi trong quá trình dịch bằng Gemini: {e}")
-        traceback.print_exc()
-        return None # Trả về None nếu có lỗi
+        except Exception as e:
+            print(f"    -> Lỗi không xác định khi dịch ở lần thử {attempt + 1}: {e}")
+            traceback.print_exc()
+            # Không thử lại với lỗi không xác định
+            return 'error', f"Lỗi dịch không xác định: {e}"
     
 def translate_and_update_post(post_id):
     """
@@ -55,8 +69,7 @@ def translate_and_update_post(post_id):
     và cập nhật vào cơ sở dữ liệu.
     """
     if not translation_model:
-         print(f"Bỏ qua dịch cho post ID {post_id} do lỗi khởi tạo model.")
-         return False
+        return 'error', "Model dịch chưa sẵn sàng."
      
     conn = psycopg2.connect(**DB_CONFIG)
     cursor = conn.cursor()
@@ -68,23 +81,20 @@ def translate_and_update_post(post_id):
     vietnamese_title, vietnamese_description = result
     
     # Dịch tiêu đề
-    title_en = translate_text_gemini(vietnamese_title, translation_model)
-    if title_en:
-        print(f"  -> Tiêu đề gốc: {vietnamese_title}")
-        print(f"  -> Tiêu đề EN: {title_en}")
-    else:
-        print(f"  -> Lỗi dịch tiêu đề hoặc tiêu đề gốc không hợp lệ.")
+    title_status, title_en = translate_text_gemini(vietnamese_title, translation_model)
+    desc_status, description_en = translate_text_gemini(vietnamese_description, translation_model)
+    if title_status == 'rate_limit_exceeded' or desc_status == 'rate_limit_exceeded':
+            cursor.close()
+            conn.close()
+            return 'rate_limit', "API rate limit exceeded during translation."
+        
+    if title_status == 'error' or desc_status == 'error':
+            # Có thể lấy message lỗi chi tiết hơn từ title_en hoặc description_en nếu cần
+            cursor.close()
+            conn.close()
+            return 'translation_error', "Error occurred during translation process."
 
-    # Dịch mô tả
-    description_en = translate_text_gemini(vietnamese_description, translation_model)
-    if description_en:
-        # In một phần để tránh log quá dài
-        print(f"  -> Mô tả gốc: {vietnamese_description[:100]}...")
-        print(f"  -> Mô tả EN: {description_en[:100]}...")
-    else:
-        print(f"  -> Lỗi dịch mô tả hoặc mô tả gốc không hợp lệ.")
-
-    if title_en and description_en: # Hoặc if title_en and description_en:
+    if title_en and description_en:
         conn = psycopg2.connect(**DB_CONFIG)
         cursor = conn.cursor()
         query = """
@@ -95,11 +105,9 @@ def translate_and_update_post(post_id):
         cursor.execute(query, (title_en, description_en, post_id))
         conn.commit() # Lưu thay đổi
         cursor.close()
-        return True
+        return 'success', f"Successfully translated and updated post ID {post_id}."
     else:
-        print(f"  -> Không có bản dịch hợp lệ nào để cập nhật cho post ID: {post_id}")
-        return False
-    return False
+        return 'no_change', f"No valid translations to update for post ID {post_id}."
 
 # if __name__ == '__main__':
 #     example_post_id = 1
